@@ -53,5 +53,6 @@ docker compose exec backend python manage.py createsuperuser
 </div>
 
 #### :man_technologist: Aвторы:
+---
 - [Яндекс Практикум](https://github.com/yandex-praktikum)
 - [Михаил Ольховик](https://github.com/Olkhovik-mv)

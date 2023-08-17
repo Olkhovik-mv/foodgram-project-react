@@ -19,10 +19,9 @@ class Command(BaseCommand):
             reader = csv.DictReader(file)
             self.stdout.write(f'Импорт данных из файла {FILE_NAME}:')
             self.stdout.write('-' * 60)
+            # счетчики
             success = 0
             errors = 0
-            query = Foodstuff.objects.all()
-            query.delete()
             for row in reader:
                 try:
                     success += Foodstuff.objects.get_or_create(**row)[1]

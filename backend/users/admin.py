@@ -4,10 +4,15 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from users.models import User
 
 
+@admin.register(User)
 class UserAdmin(BaseUserAdmin):
     """Настройки отображения модели User в админке."""
-    list_display = ('id', 'username', 'email', 'is_staff')
     list_filter = ('email', 'username', 'is_staff')
-
-
-admin.site.register(User, UserAdmin)
+    add_fieldsets = (
+        (None, {
+            'fields': (
+                'username', 'password1', 'password2',
+                'email', 'first_name', 'last_name'
+            ),
+        }),
+    )
