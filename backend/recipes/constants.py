@@ -1,3 +1,6 @@
+# admin
+TRIM_TEXT_FIELD = 50
+
 # models max_length
 TAG_NAME = 200
 TAG_COLOR = 7

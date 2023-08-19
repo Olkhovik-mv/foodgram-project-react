@@ -16,3 +16,15 @@ class UserAdmin(BaseUserAdmin):
             ),
         }),
     )
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        is_superuser = request.user.is_superuser
+        if not is_superuser:
+            disabled_fields = (
+                'is_staff', 'is_superuser', 'user_permissions', 'groups',
+            )
+            for field in disabled_fields:
+                if field in form.base_fields:
+                    form.base_fields[field].disabled = True
+        return form

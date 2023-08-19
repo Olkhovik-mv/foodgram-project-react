@@ -2,10 +2,9 @@ from django import forms
 from django.contrib import admin
 from django.db.models import Count
 
-from .models import (Basket, Favorite, Foodstuff, Ingredient, Recipe,
-                     RecipeTag, Subscription, Tag)
-
-TRIM_TEXT_FIELD = 50
+from recipes import constants as c
+from recipes.models import (Basket, Favorite, Foodstuff, Ingredient, Recipe,
+                            RecipeTag, Subscription, Tag)
 
 
 class IngredientFormSet(forms.models.BaseInlineFormSet):
@@ -61,7 +60,7 @@ class RecipeAdmin(admin.ModelAdmin):
     inlines = (IngredientInline, TagInline)
 
     def trim_text(self, obj):
-        return f'{obj.text[:TRIM_TEXT_FIELD]}'
+        return f'{obj.text[:c.TRIM_TEXT_FIELD]}'
 
     def favorite_count(self, obj):
         return obj.favorite_set.aggregate(Count('user'))['user__count']

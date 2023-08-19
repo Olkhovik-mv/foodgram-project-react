@@ -170,9 +170,9 @@ class RecipeSerializer(serializers.ModelSerializer):
     author = serializers.HiddenField(default=serializers.CurrentUserDefault())
     tags = serializers.PrimaryKeyRelatedField(
         queryset=Tag.objects.all(),
-        many=True
+        many=True, allow_empty=False
     )
-    ingredients = IngredientCreateSerializer(many=True)
+    ingredients = IngredientCreateSerializer(many=True, allow_empty=False)
     image = Base64ImageField()
 
     class Meta:
@@ -180,38 +180,39 @@ class RecipeSerializer(serializers.ModelSerializer):
         fields = ('ingredients', 'tags', 'image', 'name',
                   'text', 'cooking_time', 'author')
 
-    def validate(self, data):
-        tags = data.get('tags')
-        if not tags:
-            return data
-        if len(tags) == 0:
-            raise serializers.ValidationError('Добавьте в рецепт теги!')
-        if len(tags) != len(set((tag for tag in tags))):
-            raise serializers.ValidationError(
-                'В рецепе есть одинаковые теги!'
-            )
-        return data
-
     def validate_ingredients(self, value):
-        if len(value) == 0:
-            raise serializers.ValidationError('Добавьте в рецепт ингредиенты!')
         try:
             [(obj['foodstuff'], obj['amount']) for obj in value]
         except KeyError as e:
             raise serializers.ValidationError(f'{e} - обязательное поле!')
-        if len(value) != len(set((obj['foodstuff'] for obj in value))):
-            raise serializers.ValidationError(
-                'В рецепе есть одинаковые ингредиенты!'
-            )
         return value
 
-    def save_ingredients(self, ingredients, recipe, update=False):
-        obj_list = []
-        for ingredient in ingredients:
-            obj_list.append(Ingredient(recipe=recipe, **ingredient))
+    def save_ingredients(self, data, recipe, update=False):
+        ingredients = []
         if update:
-            Ingredient.objects.filter(recipe=recipe).delete()
-        Ingredient.objects.bulk_create(obj_list)
+            ingredients = recipe.ingredients.all()
+        objs_mapping = {obj.foodstuff: obj for obj in ingredients}
+        data_mapping = {item['foodstuff']: item for item in data}
+        objs_create, objs_update, objs_delete = [], [], []
+        for obj_id, item in data_mapping.items():
+            obj = objs_mapping.get(obj_id, None)
+            if obj is None:
+                objs_create.append(Ingredient(recipe=recipe, **item))
+            else:
+                if obj.amount != item['amount']:
+                    obj.amount = item['amount']
+                    objs_update.append(obj)
+        for obj_id, obj in objs_mapping.items():
+            if obj_id not in data_mapping:
+                objs_delete.append(obj_id)
+        if objs_create:
+            Ingredient.objects.bulk_create(objs_create)
+        if objs_update:
+            Ingredient.objects.bulk_update(objs_update, ['amount'])
+        if objs_delete:
+            Ingredient.objects.filter(
+                recipe=recipe, foodstuff__in=objs_delete
+            ).delete()
 
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients')

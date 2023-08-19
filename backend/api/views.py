@@ -12,11 +12,11 @@ from api.filters import RecipeFilter
 from api.mixins import ExcludePutViewSet
 from api.pagination import PageLimitPagination
 from api.permissions import AuthorAdminOrReadOnly
-from api.scripts import create_shopping_cart
 from api.serializers import (BasketSerializer, FavoriteSerializer,
                              FoodstuffSerializer, RecipeSerializer,
                              SubscriptionSerializer, TagSerializer,
                              UserSubscriptionSerializer)
+from api.utils import create_shopping_cart
 from recipes.models import (Basket, Favorite, Foodstuff, Recipe, Subscription,
                             Tag)
 
