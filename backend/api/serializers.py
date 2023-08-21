@@ -182,7 +182,7 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def validate_ingredients(self, value):
         # пожалуйста, прочитайте
-        # https://drive.google.com/file/d/1N4qD9vCbd7n2suGfD4CKF9mRqcHFKQot/view?usp=sharing
+        # https://drive.google.com/file/d/1N4qD9vCbd7n2suGfD4CKF9mRqcHFKQot/view?usp=sharing 
         # комментарии я конечно же удалю
         try:
             [(obj['foodstuff'], obj['amount']) for obj in value]
