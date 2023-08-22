@@ -180,51 +180,60 @@ class RecipeSerializer(serializers.ModelSerializer):
         fields = ('ingredients', 'tags', 'image', 'name',
                   'text', 'cooking_time', 'author')
 
+    def validate_tags(self, value):
+        if len(value) != len(set(value)):
+            raise serializers.ValidationError(
+                'В рецепте есть одинаковые теги!'
+            )
+        return value
+
     def validate_ingredients(self, value):
-        # пожалуйста, прочитайте
-        # https://drive.google.com/file/d/1N4qD9vCbd7n2suGfD4CKF9mRqcHFKQot/view?usp=sharing
-        # комментарии я конечно же удалю
+        if len(value) != len({obj['foodstuff'] for obj in value}):
+            raise serializers.ValidationError(
+                'В рецепте есть одинаковые ингредиенты!'
+            )
         try:
             [(obj['foodstuff'], obj['amount']) for obj in value]
         except KeyError as e:
-            raise serializers.ValidationError(f'{e} - обязательное поле!')
-        return {item['foodstuff']: item for item in value}.values()
+            raise (f'{e} - обязательное поле')
+        return value
+
+    def save_ingredients(self, data, recipe, is_update=False):
+        ingredients = []
+        if is_update:
+            ingredients = recipe.ingredients.all()
+        objs_mapping = {obj.foodstuff: obj for obj in ingredients}
+        data_mapping = {item['foodstuff']: item for item in data}
+        objs_create, objs_update = [], []
+        for obj_id, item in data_mapping.items():
+            obj = objs_mapping.pop(obj_id, None)
+            if obj is None:
+                objs_create.append(Ingredient(recipe=recipe, **item))
+            else:
+                if obj.amount != item['amount']:
+                    obj.amount = item['amount']
+                    objs_update.append(obj)
+        if objs_create:
+            Ingredient.objects.bulk_create(objs_create)
+        if objs_update:
+            Ingredient.objects.bulk_update(objs_update, ['amount'])
+        if objs_mapping:
+            Ingredient.objects.filter(
+                recipe=recipe, foodstuff__in=objs_mapping.keys()
+            ).delete()
 
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
         recipe = Recipe.objects.create(**validated_data)
         recipe.tags.set(tags)
-        ingredient_create = []
-        for ingredient in ingredients:
-            ingredient_create.append(Ingredient(recipe=recipe, **ingredient))
-        Ingredient.objects.bulk_create(ingredient_create)
+        self.save_ingredients(ingredients, recipe)
         return recipe
 
     def update(self, instance, validated_data):
         ingredients = validated_data.get('ingredients')
         if ingredients is not None:
-            objs_mapping = {
-                obj.foodstuff: obj for obj in instance.ingredients.all()
-            }
-            data_mapping = {item['foodstuff']: item for item in ingredients}
-            objs_create, objs_update = [], []
-            for obj_id, item in data_mapping.items():
-                obj = objs_mapping.pop(obj_id, None)
-                if obj is None:
-                    objs_create.append(Ingredient(recipe=instance, **item))
-                else:
-                    if obj.amount != item['amount']:
-                        obj.amount = item['amount']
-                        objs_update.append(obj)
-            if objs_create:
-                Ingredient.objects.bulk_create(objs_create)
-            if objs_update:
-                Ingredient.objects.bulk_update(objs_update, ['amount'])
-            if objs_mapping:
-                Ingredient.objects.filter(
-                    recipe=instance, foodstuff__in=objs_mapping.keys()
-                ).delete()
+            self.save_ingredients(ingredients, instance, is_update=True)
         tags = validated_data.get('tags')
         if tags is not None:
             instance.tags.set(tags)

@@ -128,7 +128,7 @@ class RecipeViewSet(ExcludePutViewSet):
             return FavoriteSerializer
         return super().get_serializer_class(*args, **kwargs)
 
-    def actions(self, model, request, pk):
+    def user_interfase(self, model, request, pk):
         if request.method == 'DELETE':
             record = get_object_or_404(model, recipe=pk, user=request.user.id)
             record.delete()
@@ -141,11 +141,11 @@ class RecipeViewSet(ExcludePutViewSet):
 
     @action(methods=['post', 'delete'], detail=True)
     def shopping_cart(self, request, pk):
-        return self.actions(Basket, request, pk)
+        return self.user_interfase(Basket, request, pk)
 
     @action(methods=['post', 'delete'], detail=True)
     def favorite(self, request, pk):
-        return self.actions(Favorite, request, pk)
+        return self.user_interfase(Favorite, request, pk)
 
     @action(detail=False, permission_classes=(permissions.IsAuthenticated,))
     def download_shopping_cart(self, request):
